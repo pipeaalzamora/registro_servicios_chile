@@ -7,6 +7,7 @@ from pathlib import Path
 from ..domain.entities import CuentaServicio, ResumenMensual, TipoServicio, HistorialCambio, TipoCambio
 from ..domain.repositories import CuentaServicioRepository, ResumenRepository
 from .security import security_manager
+from ..infrastructure.utils import parse_datetime
 
 class JSONCuentaServicioRepository(CuentaServicioRepository):
     """Implementación del repositorio usando JSON para almacenamiento local"""
@@ -34,11 +35,14 @@ class JSONCuentaServicioRepository(CuentaServicioRepository):
                 with open(self.cuentas_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.cuentas = {}
-                    for cuenta_data in data.values():
-                        # Sanitizar datos antes de procesar
-                        cuenta_data_sanitizada = security_manager.sanitizar_datos_json(cuenta_data)
-                        cuenta = self._deserializar_cuenta(cuenta_data_sanitizada)
-                        self.cuentas[cuenta.id] = cuenta
+                    for cuenta_id, cuenta_data in data.items():
+                        try:
+                            # Sanitizar datos antes de procesar
+                            cuenta_data_sanitizada = security_manager.sanitizar_datos_json(cuenta_data)
+                            cuenta = self._deserializar_cuenta(cuenta_data_sanitizada)
+                            self.cuentas[cuenta.id] = cuenta
+                        except Exception as e:
+                            continue
 
                 security_manager.generar_log_seguridad(
                     "CARGA_EXITOSA",
@@ -130,8 +134,8 @@ class JSONCuentaServicioRepository(CuentaServicioRepository):
         cuenta = CuentaServicio(
             id=data['id'],
             tipo_servicio=TipoServicio(data['tipo_servicio']),
-            fecha_emision=datetime.fromisoformat(data['fecha_emision']),
-            fecha_vencimiento=datetime.fromisoformat(data['fecha_vencimiento']),
+            fecha_emision=parse_datetime(data['fecha_emision']),
+            fecha_vencimiento=parse_datetime(data['fecha_vencimiento']),
             monto=data['monto'],
             descripcion=data['descripcion'],
             pagado=data['pagado'],
@@ -140,11 +144,11 @@ class JSONCuentaServicioRepository(CuentaServicioRepository):
 
         # Cargar fechas opcionales
         if data.get('fecha_pago'):
-            cuenta.fecha_pago = datetime.fromisoformat(data['fecha_pago'])
+            cuenta.fecha_pago = parse_datetime(data['fecha_pago'])
         if data.get('fecha_proxima_lectura'):
-            cuenta.fecha_proxima_lectura = datetime.fromisoformat(data['fecha_proxima_lectura'])
+            cuenta.fecha_proxima_lectura = parse_datetime(data['fecha_proxima_lectura'])
         if data.get('fecha_corte'):
-            cuenta.fecha_corte = datetime.fromisoformat(data['fecha_corte'])
+            cuenta.fecha_corte = parse_datetime(data['fecha_corte'])
 
         # Cargar historial
         if data.get('historial'):
@@ -158,7 +162,7 @@ class JSONCuentaServicioRepository(CuentaServicioRepository):
             id=data['id'],
             cuenta_id=data['cuenta_id'],
             tipo_cambio=TipoCambio(data['tipo_cambio']),
-            fecha_cambio=datetime.fromisoformat(data['fecha_cambio']),
+            fecha_cambio=parse_datetime(data['fecha_cambio']),
             descripcion=data['descripcion'],
             datos_anteriores=data.get('datos_anteriores'),
             datos_nuevos=data.get('datos_nuevos')

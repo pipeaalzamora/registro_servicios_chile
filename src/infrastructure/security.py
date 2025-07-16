@@ -16,8 +16,8 @@ class SecurityManager:
     """Gestor de seguridad para la aplicación"""
 
     def __init__(self, data_dir: str = "data", reports_dir: str = "reports"):
-        self.data_dir = Path(data_dir)
-        self.reports_dir = Path(reports_dir)
+        self.data_dir = Path(data_dir).resolve()
+        self.reports_dir = Path(reports_dir).resolve()
         self.allowed_extensions = {'.json', '.pdf', '.txt'}
         self.max_file_size = 10 * 1024 * 1024  # 10MB
 
@@ -25,21 +25,19 @@ class SecurityManager:
         """Valida que la ruta del archivo sea segura"""
         try:
             path = Path(filepath).resolve()
-
             # Verificar que esté dentro de los directorios permitidos
-            if not (path.is_relative_to(self.data_dir) or path.is_relative_to(self.reports_dir)):
+            is_relative_to_data = path.is_relative_to(self.data_dir)
+            is_relative_to_reports = path.is_relative_to(self.reports_dir)
+            if not (is_relative_to_data or is_relative_to_reports):
                 return False
-
             # Verificar extensión permitida
             if path.suffix.lower() not in self.allowed_extensions:
                 return False
-
             # Verificar que no contenga caracteres peligrosos
             if not SecurityManager.validar_nombre_archivo(path.name):
                 return False
-
             return True
-        except:
+        except Exception:
             return False
 
     def sanitizar_datos_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -248,7 +246,7 @@ class SecurityManager:
         return bool(re.match(pattern, email.strip()))
 
     @staticmethod
-    def sanitizar_texto(texto: str) -> str:
+    def sanitizar_texto(texto: str, max_length: Optional[int] = 1000) -> str:
         """Sanitiza texto para prevenir inyección de código"""
         if not texto or not isinstance(texto, str):
             return ""
@@ -257,7 +255,10 @@ class SecurityManager:
         texto_limpio = re.sub(r'[<>"\']', '', texto)
 
         # Limitar longitud
-        return texto_limpio[:1000].strip()
+        if max_length:
+            texto_limpio = texto_limpio[:max_length]
+
+        return texto_limpio.strip()
 
     @staticmethod
     def validar_nombre_archivo(nombre: str) -> bool:

@@ -46,3 +46,27 @@ def parsear_moneda_clp(texto: str) -> float:
         return float(texto_limpio)
     except ValueError:
         raise ValueError("Formato de moneda inválido")
+
+def parse_datetime(date_string: str):
+    """Parsea una fecha desde string, manejando diferentes formatos y permitiendo None"""
+    from datetime import datetime
+    if date_string is None or date_string == "None":
+        return None
+    try:
+        # Intentar con fromisoformat primero
+        return datetime.fromisoformat(date_string)
+    except ValueError:
+        try:
+            # Si falla, intentar parsear manualmente eliminando microsegundos
+            if '.' in date_string:
+                # Remover microsegundos si existen
+                date_string = date_string.split('.')[0]
+            return datetime.fromisoformat(date_string)
+        except ValueError:
+            # Si aún falla, usar strptime como último recurso
+            for fmt in ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+                try:
+                    return datetime.strptime(date_string, fmt)
+                except ValueError:
+                    continue
+            raise ValueError(f"No se pudo parsear la fecha: {date_string}")
