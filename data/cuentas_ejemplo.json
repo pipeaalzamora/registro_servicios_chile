@@ -1,0 +1,90 @@
+{
+  "Luz_20241201_001": {
+    "id": "Luz_20241201_001",
+    "tipo_servicio": "Luz",
+    "fecha_emision": "2024-12-01T00:00:00",
+    "fecha_vencimiento": "2024-12-15T00:00:00",
+    "monto": 45000.0,
+    "descripcion": "Consumo mensual diciembre",
+    "pagado": true,
+    "fecha_pago": "2024-12-10T00:00:00",
+    "observaciones": "Pago realizado con descuento",
+    "fecha_proxima_lectura": "2025-01-01T00:00:00",
+    "fecha_corte": "2024-12-20T00:00:00",
+    "historial": [
+      {
+        "fecha": "2024-12-10T10:30:00",
+        "accion": "Pago realizado",
+        "detalles": "Monto: $45.000 CLP"
+      }
+    ]
+  },
+  "Agua_20241201_002": {
+    "id": "Agua_20241201_002",
+    "tipo_servicio": "Agua",
+    "fecha_emision": "2024-12-01T00:00:00",
+    "fecha_vencimiento": "2024-12-20T00:00:00",
+    "monto": 25000.0,
+    "descripcion": "Servicio de agua potable",
+    "pagado": false,
+    "fecha_pago": "None",
+    "observaciones": "",
+    "fecha_proxima_lectura": "2025-01-01T00:00:00",
+    "fecha_corte": "2024-12-25T00:00:00",
+    "historial": []
+  },
+  "Gas_20241201_003": {
+    "id": "Gas_20241201_003",
+    "tipo_servicio": "Gas",
+    "fecha_emision": "2024-12-01T00:00:00",
+    "fecha_vencimiento": "2024-12-18T00:00:00",
+    "monto": 35000.0,
+    "descripcion": "Gas natural residencial",
+    "pagado": false,
+    "fecha_pago": "None",
+    "observaciones": "Recordar pagar antes del corte",
+    "fecha_proxima_lectura": "2024-12-31T00:00:00",
+    "fecha_corte": "2024-12-23T00:00:00",
+    "historial": []
+  },
+  "Internet_20241201_004": {
+    "id": "Internet_20241201_004",
+    "tipo_servicio": "Internet",
+    "fecha_emision": "2024-12-01T00:00:00",
+    "fecha_vencimiento": "2024-12-25T00:00:00",
+    "monto": 55000.0,
+    "descripcion": "Plan 100 Mbps fibra óptica",
+    "pagado": true,
+    "fecha_pago": "2024-12-05T00:00:00",
+    "observaciones": "Pago automático",
+    "fecha_proxima_lectura": "2025-01-01T00:00:00",
+    "fecha_corte": "2024-12-30T00:00:00",
+    "historial": [
+      {
+        "fecha": "2024-12-05T08:15:00",
+        "accion": "Pago automático realizado",
+        "detalles": "Monto: $55.000 CLP"
+      }
+    ]
+  },
+  "Gastos_Comunes_20241201_005": {
+    "id": "Gastos_Comunes_20241201_005",
+    "tipo_servicio": "Gastos Comunes",
+    "fecha_emision": "2024-12-01T00:00:00",
+    "fecha_vencimiento": "2024-12-10T00:00:00",
+    "monto": 120000.0,
+    "descripcion": "Gastos comunes edificio",
+    "pagado": true,
+    "fecha_pago": "2024-12-08T00:00:00",
+    "observaciones": "Incluye mantención ascensor",
+    "fecha_proxima_lectura": "2025-01-01T00:00:00",
+    "fecha_corte": "2024-12-15T00:00:00",
+    "historial": [
+      {
+        "fecha": "2024-12-08T14:20:00",
+        "accion": "Pago realizado",
+        "detalles": "Monto: $120.000 CLP"
+      }
+    ]
+  }
+}

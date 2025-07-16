@@ -1,0 +1,1 @@
+# Paquete de infraestructura - Persistencia y servicios externos

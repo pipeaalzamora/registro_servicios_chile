@@ -1,0 +1,22 @@
+{
+  "email": {
+    "enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "username": "tu-email@gmail.com",
+    "password": "tu-contraseña-de-aplicación",
+    "from_email": "tu-email@gmail.com",
+    "to_email": "destinatario@ejemplo.com"
+  },
+  "notifications": {
+    "vencimiento_antes": 3,
+    "corte_antes": 1,
+    "recordatorio_diario": true,
+    "hora_recordatorio": "09:00"
+  },
+  "backup": {
+    "auto_backup": true,
+    "backup_interval_days": 7,
+    "max_backups": 10
+  }
+}

@@ -1,0 +1,89 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Archivos de configuración local y sensibles
+config/notifications.json
+config/local_settings.json
+*.env
+.env.local
+.env.production
+
+# Datos de usuario (backups y logs)
+data/backups/
+data/logs/
+data/cuentas_backup_*.json
+data/security_logs/
+
+# Reportes generados
+reports/*.pdf
+reports/temp/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.atom/
+.brackets.json
+
+# Archivos de Windows
+*.lnk
+desktop.ini
+
+# Archivos de respaldo
+*.bak
+*.backup
+*.old
+
+# Archivos de instalación
+*.exe
+*.msi
+*.dmg
+
+# Archivos de logs de Python
+*.log
+logs/
+
+# Archivos de caché
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Archivos de configuración local
+local_config.json
+user_settings.json
