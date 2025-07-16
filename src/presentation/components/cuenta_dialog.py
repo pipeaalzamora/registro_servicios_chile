@@ -6,11 +6,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 from typing import Optional, Callable
-import re
 
 from ...domain.entities import TipoServicio, CuentaServicio
+from ...domain.validators import CuentaServicioValidator, TextValidator
 from ...application.casos_uso import GestionarCuentaServicio
 from .calendar_widget import DateEntryWithCalendar
+from ..utils import error_handler, handle_validation_errors
 
 
 class CuentaDialog:
@@ -35,221 +36,216 @@ class CuentaDialog:
 
     def setup_ui(self):
         """Configura la interfaz del diálogo"""
-        main_frame = ttk.Frame(self.dialog, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Frame principal
+        main_frame = ttk.Frame(self.dialog, padding="10")
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        self.dialog.columnconfigure(0, weight=1)
+        self.dialog.rowconfigure(0, weight=1)
 
-        # Tipo de servicio
-        ttk.Label(main_frame, text="Tipo de Servicio:").grid(row=0, column=0, sticky="w", pady=5)
+        # Variables
         self.tipo_var = tk.StringVar()
-        tipo_combo = ttk.Combobox(main_frame, textvariable=self.tipo_var,
-                                 values=[t.value for t in TipoServicio], state="readonly")
-        tipo_combo.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
+        self.monto_var = tk.StringVar()
+        self.descripcion_var = tk.StringVar()
 
-                # Fecha de emisión
+        # Crear widgets
+        self.crear_widgets(main_frame)
+
+    def crear_widgets(self, parent):
+        """Crea los widgets del formulario"""
+        # Tipo de servicio
+        ttk.Label(parent, text="Tipo de Servicio:").grid(row=0, column=0, sticky="w", pady=(0, 5))
+        tipo_combo = ttk.Combobox(parent, textvariable=self.tipo_var,
+                                 values=[t.value for t in TipoServicio], state="readonly")
+        tipo_combo.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+
+        # Fecha de emisión
         self.fecha_emision_widget = DateEntryWithCalendar(
-            main_frame, "Fecha de Emisión:",
+            parent, "Fecha de Emisión:",
             initial_date=datetime.now(),
-            min_date=datetime.now() - timedelta(days=3650),  # 10 años atrás
-            max_date=datetime.now() + timedelta(days=365),   # 1 año adelante
-            row=1, column=0, padx=(0, 10)
+            min_date=datetime.now() - timedelta(days=3650),
+            max_date=datetime.now() + timedelta(days=365),
+            row=2, column=0, sticky="ew"
         )
 
         # Fecha de vencimiento
         self.fecha_vencimiento_widget = DateEntryWithCalendar(
-            main_frame, "Fecha de Vencimiento:",
+            parent, "Fecha de Vencimiento:",
             initial_date=datetime.now() + timedelta(days=30),
             min_date=datetime.now(),
-            max_date=datetime.now() + timedelta(days=730),   # 2 años adelante
-            row=2, column=0, padx=(0, 10)
+            max_date=datetime.now() + timedelta(days=730),
+            row=4, column=0, sticky="ew"
         )
-
-        # Fecha de próxima lectura
-        self.fecha_proxima_lectura_widget = DateEntryWithCalendar(
-            main_frame, "Próxima Lectura:",
-            initial_date=None,
-            min_date=datetime.now(),
-            max_date=datetime.now() + timedelta(days=365),   # 1 año adelante
-            row=3, column=0, padx=(0, 10)
-        )
-        ttk.Label(main_frame, text="(Opcional)").grid(row=3, column=2, sticky="w", padx=(5, 0), pady=5)
-
-        # Fecha de corte
-        self.fecha_corte_widget = DateEntryWithCalendar(
-            main_frame, "Fecha de Corte:",
-            initial_date=None,
-            min_date=datetime.now(),
-            max_date=datetime.now() + timedelta(days=365),   # 1 año adelante
-            row=4, column=0, padx=(0, 10)
-        )
-        ttk.Label(main_frame, text="(Opcional)").grid(row=4, column=2, sticky="w", padx=(5, 0), pady=5)
 
         # Monto
-        ttk.Label(main_frame, text="Monto:").grid(row=5, column=0, sticky="w", pady=5)
-        self.monto_var = tk.StringVar()
-        ttk.Entry(main_frame, textvariable=self.monto_var).grid(row=5, column=1, sticky="ew", padx=(10, 0), pady=5)
+        ttk.Label(parent, text="Monto (CLP):").grid(row=6, column=0, sticky="w", pady=(0, 5))
+        monto_entry = ttk.Entry(parent, textvariable=self.monto_var)
+        monto_entry.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         # Descripción
-        ttk.Label(main_frame, text="Descripción:").grid(row=6, column=0, sticky="w", pady=5)
-        self.descripcion_var = tk.StringVar()
-        ttk.Entry(main_frame, textvariable=self.descripcion_var).grid(row=6, column=1, sticky="ew", padx=(10, 0), pady=5)
+        ttk.Label(parent, text="Descripción:").grid(row=8, column=0, sticky="w", pady=(0, 5))
+        descripcion_entry = ttk.Entry(parent, textvariable=self.descripcion_var)
+        descripcion_entry.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+
+        # Fecha próxima lectura (opcional)
+        self.fecha_proxima_lectura_widget = DateEntryWithCalendar(
+            parent, "Próxima Lectura (opcional):",
+            initial_date=None,
+            min_date=datetime.now(),
+            max_date=datetime.now() + timedelta(days=365),
+            row=10, column=0, sticky="ew"
+        )
+
+        # Fecha de corte (opcional)
+        self.fecha_corte_widget = DateEntryWithCalendar(
+            parent, "Fecha de Corte (opcional):",
+            initial_date=None,
+            min_date=datetime.now(),
+            max_date=datetime.now() + timedelta(days=365),
+            row=12, column=0, sticky="ew"
+        )
 
         # Observaciones
-        ttk.Label(main_frame, text="Observaciones:").grid(row=7, column=0, sticky="w", pady=5)
-        self.observaciones_text = tk.Text(main_frame, height=4, width=40)
-        self.observaciones_text.grid(row=7, column=1, sticky="ew", padx=(10, 0), pady=5)
+        ttk.Label(parent, text="Observaciones:").grid(row=14, column=0, sticky="w", pady=(0, 5))
+        self.observaciones_text = tk.Text(parent, height=4, width=50)
+        self.observaciones_text.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
-        # Frame para mensajes de validación
-        self.validation_frame = ttk.Frame(main_frame)
-        self.validation_frame.grid(row=8, column=0, columnspan=3, pady=10, sticky="ew")
-        self.validation_label = ttk.Label(self.validation_frame, text="", foreground="red")
-        self.validation_label.pack()
-
-        # Estado de pago (solo para edición)
+        # Checkbox para pagado (solo en edición)
         if self.cuenta:
-            ttk.Label(main_frame, text="Estado:").grid(row=9, column=0, sticky="w", pady=5)
             self.pagado_var = tk.BooleanVar(value=self.cuenta.pagado)
-            ttk.Checkbutton(main_frame, text="Pagado", variable=self.pagado_var).grid(row=9, column=1, sticky="w", padx=(10, 0), pady=5)
+            pagado_check = ttk.Checkbutton(parent, text="Marcar como pagada",
+                                          variable=self.pagado_var)
+            pagado_check.grid(row=16, column=0, columnspan=2, sticky="w", pady=(0, 10))
 
         # Botones
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=10, column=0, columnspan=3, pady=20)
+        button_frame = ttk.Frame(parent)
+        button_frame.grid(row=17, column=0, columnspan=2, pady=(20, 0))
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(1, weight=1)
 
-        ttk.Button(button_frame, text="Guardar", command=self.guardar).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancelar", command=self.dialog.destroy).pack(side=tk.LEFT, padx=5)
-
-        # Configurar grid
-        main_frame.columnconfigure(1, weight=1)
-
-                # Configurar validaciones en tiempo real
-        # self.configurar_validaciones_tiempo_real()  # Comentado temporalmente
+        ttk.Button(button_frame, text="Guardar", command=self.guardar).grid(row=0, column=0, padx=(0, 5))
+        ttk.Button(button_frame, text="Cancelar", command=self.dialog.destroy).grid(row=0, column=1, padx=(5, 0))
 
     def cargar_datos(self):
-        """Carga los datos de la cuenta para edición"""
+        """Carga los datos de la cuenta existente"""
         if not self.cuenta:
             return
 
         self.tipo_var.set(self.cuenta.tipo_servicio.value)
+        self.monto_var.set(str(int(self.cuenta.monto)))
+        self.descripcion_var.set(self.cuenta.descripcion)
+
         self.fecha_emision_widget.set_date(self.cuenta.fecha_emision)
         self.fecha_vencimiento_widget.set_date(self.cuenta.fecha_vencimiento)
-        self.monto_var.set(str(self.cuenta.monto))
-        self.descripcion_var.set(self.cuenta.descripcion)
-        self.observaciones_text.delete('1.0', tk.END)
-        self.observaciones_text.insert('1.0', self.cuenta.observaciones)
 
-        # Cargar fechas opcionales
         if self.cuenta.fecha_proxima_lectura:
             self.fecha_proxima_lectura_widget.set_date(self.cuenta.fecha_proxima_lectura)
         if self.cuenta.fecha_corte:
             self.fecha_corte_widget.set_date(self.cuenta.fecha_corte)
 
+        self.observaciones_text.delete('1.0', tk.END)
+        self.observaciones_text.insert('1.0', self.cuenta.observaciones)
+
+    @handle_validation_errors("CuentaDialog.guardar")
     def guardar(self):
-        """Guarda la cuenta con validaciones avanzadas"""
+        """Guarda la cuenta usando el validador centralizado"""
+        # Validaciones básicas
+        if not self.tipo_var.get():
+            error_handler.handle_validation_error("Debe seleccionar un tipo de servicio")
+            return
+
+        if not self.monto_var.get():
+            error_handler.handle_validation_error("Debe ingresar un monto")
+            return
+
+        if not self.descripcion_var.get().strip():
+            error_handler.handle_validation_error("Debe ingresar una descripción")
+            return
+
+        # Parsear datos
+        tipo_servicio = TipoServicio(self.tipo_var.get())
+
+        fecha_emision = self.fecha_emision_widget.get_date()
+        fecha_vencimiento = self.fecha_vencimiento_widget.get_date()
+
+        if not fecha_emision:
+            error_handler.handle_validation_error("Debe seleccionar una fecha de emisión válida")
+            return
+
+        if not fecha_vencimiento:
+            error_handler.handle_validation_error("Debe seleccionar una fecha de vencimiento válida")
+            return
+
+        # Parsear monto
         try:
-            # Validar datos básicos
-            if not self.tipo_var.get():
-                messagebox.showerror("Error", "Debe seleccionar un tipo de servicio")
-                return
+            monto = float(self.monto_var.get())
+        except ValueError:
+            error_handler.handle_data_error("El monto debe ser un número válido")
+            return
 
-            if not self.monto_var.get():
-                messagebox.showerror("Error", "Debe ingresar un monto")
-                return
+        # Sanitizar texto usando el validador centralizado
+        descripcion = TextValidator.sanitizar_texto(self.descripcion_var.get().strip())
+        observaciones = TextValidator.sanitizar_texto(self.observaciones_text.get('1.0', tk.END).strip())
 
-            if not self.descripcion_var.get().strip():
-                messagebox.showerror("Error", "Debe ingresar una descripción")
-                return
+        # Obtener fechas opcionales
+        fecha_proxima_lectura = self.fecha_proxima_lectura_widget.get_date()
+        fecha_corte = self.fecha_corte_widget.get_date()
 
-            # Parsear y validar datos con validaciones avanzadas
-            tipo_servicio = TipoServicio(self.tipo_var.get())
+        # Validar usando el validador centralizado
+        errores = CuentaServicioValidator.validar_cuenta_completa(
+            tipo_servicio=tipo_servicio,
+            fecha_emision=fecha_emision,
+            fecha_vencimiento=fecha_vencimiento,
+            monto=monto,
+            descripcion=descripcion,
+            observaciones=observaciones,
+            fecha_proxima_lectura=fecha_proxima_lectura,
+            fecha_corte=fecha_corte
+        )
 
-            # Obtener fechas de los widgets de calendario
-            fecha_emision = self.fecha_emision_widget.get_date()
-            fecha_vencimiento = self.fecha_vencimiento_widget.get_date()
+        if errores:
+            error_handler.handle_validation_error("\n".join(errores))
+            return
 
-            if not fecha_emision:
-                messagebox.showerror("Error", "Debe seleccionar una fecha de emisión válida")
-                return
+        if self.cuenta:
+            # Actualizar cuenta existente
+            self.cuenta.tipo_servicio = tipo_servicio
+            self.cuenta.fecha_emision = fecha_emision
+            self.cuenta.fecha_vencimiento = fecha_vencimiento
+            self.cuenta.monto = monto
+            self.cuenta.descripcion = descripcion
+            self.cuenta.observaciones = observaciones
+            self.cuenta.fecha_proxima_lectura = fecha_proxima_lectura
+            self.cuenta.fecha_corte = fecha_corte
 
-            if not fecha_vencimiento:
-                messagebox.showerror("Error", "Debe seleccionar una fecha de vencimiento válida")
-                return
+            if hasattr(self, 'pagado_var'):
+                self.cuenta.pagado = self.pagado_var.get()
 
-            # Parsear monto
-            try:
-                monto = float(self.monto_var.get())
-            except ValueError:
-                messagebox.showerror("Error", "El monto debe ser un número válido")
-                return
-
-            # Validar datos básicos
-            if monto <= 0:
-                messagebox.showerror("Error", "El monto debe ser mayor a 0")
-                return
-
-            if monto > 10000000:
-                messagebox.showerror("Error", "El monto no puede exceder $10,000,000")
-                return
-
-            if fecha_vencimiento <= fecha_emision:
-                messagebox.showerror("Error", "La fecha de vencimiento debe ser posterior a la fecha de emisión")
-                return
-
-            # Sanitizar texto
-            descripcion = self.descripcion_var.get().strip()
-            observaciones = self.observaciones_text.get('1.0', tk.END).strip()
-
-            # Remover caracteres peligrosos
-            descripcion = re.sub(r'[<>"\']', '', descripcion)
-            observaciones = re.sub(r'[<>"\']', '', observaciones)
-
-            # Obtener fechas opcionales de los widgets de calendario
-            fecha_proxima_lectura = self.fecha_proxima_lectura_widget.get_date()
-            fecha_corte = self.fecha_corte_widget.get_date()
-
-            if self.cuenta:
-                # Actualizar cuenta existente
-                self.cuenta.tipo_servicio = tipo_servicio
-                self.cuenta.fecha_emision = fecha_emision
-                self.cuenta.fecha_vencimiento = fecha_vencimiento
-                self.cuenta.monto = monto
-                self.cuenta.descripcion = descripcion
-                self.cuenta.observaciones = observaciones
-                self.cuenta.fecha_proxima_lectura = fecha_proxima_lectura
-                self.cuenta.fecha_corte = fecha_corte
-
-                if hasattr(self, 'pagado_var'):
-                    self.cuenta.pagado = self.pagado_var.get()
-
-                if self.gestionar_cuenta.actualizar_cuenta(self.cuenta):
-                    messagebox.showinfo("Éxito", "Cuenta actualizada correctamente")
-                else:
-                    messagebox.showerror("Error", "No se pudo actualizar la cuenta")
+            if self.gestionar_cuenta.actualizar_cuenta(self.cuenta):
+                messagebox.showinfo("Éxito", "Cuenta actualizada correctamente")
             else:
-                # Crear nueva cuenta
-                cuenta = self.gestionar_cuenta.crear_cuenta(
-                    tipo_servicio=tipo_servicio,
-                    fecha_emision=fecha_emision,
-                    fecha_vencimiento=fecha_vencimiento,
-                    monto=monto,
-                    descripcion=descripcion,
-                    observaciones=observaciones
-                )
+                error_handler.handle_ui_error("No se pudo actualizar la cuenta")
+        else:
+            # Crear nueva cuenta
+            cuenta = self.gestionar_cuenta.crear_cuenta(
+                tipo_servicio=tipo_servicio,
+                fecha_emision=fecha_emision,
+                fecha_vencimiento=fecha_vencimiento,
+                monto=monto,
+                descripcion=descripcion,
+                observaciones=observaciones
+            )
 
-                # Actualizar fechas opcionales
-                if fecha_proxima_lectura:
-                    cuenta.fecha_proxima_lectura = fecha_proxima_lectura
-                if fecha_corte:
-                    cuenta.fecha_corte = fecha_corte
+            # Actualizar fechas opcionales
+            if fecha_proxima_lectura:
+                cuenta.fecha_proxima_lectura = fecha_proxima_lectura
+            if fecha_corte:
+                cuenta.fecha_corte = fecha_corte
 
-                self.gestionar_cuenta.actualizar_cuenta(cuenta)
-                messagebox.showinfo("Éxito", "Cuenta creada correctamente")
+            self.gestionar_cuenta.actualizar_cuenta(cuenta)
+            messagebox.showinfo("Éxito", "Cuenta creada correctamente")
 
-            self.callback_actualizar()
-            self.dialog.destroy()
-
-        except ValueError as e:
-            messagebox.showerror("Error de Datos", f"Error en los datos: {str(e)}")
-        except Exception as e:
-            messagebox.showerror("Error Inesperado", f"Error inesperado: {str(e)}")
+        self.callback_actualizar()
+        self.dialog.destroy()
 
     def show(self):
         """Muestra el diálogo"""

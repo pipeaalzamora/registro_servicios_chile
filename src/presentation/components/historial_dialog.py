@@ -29,12 +29,31 @@ class HistorialDialog:
 
     def setup_ui(self):
         """Configura la interfaz del diálogo"""
-        main_frame = ttk.Frame(self.dialog, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Frame principal
+        main_frame = tk.Frame(self.dialog)
+        main_frame.grid(row=0, column=0, sticky="nsew")
+        self.dialog.columnconfigure(0, weight=1)
+        self.dialog.rowconfigure(0, weight=1)
 
-        # Información de la cuenta
-        info_frame = ttk.LabelFrame(main_frame, text="Información de la Cuenta", padding="10")
-        info_frame.pack(fill=tk.X, pady=(0, 10))
+        # Frame de información
+        info_frame = tk.Frame(main_frame)
+        info_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+        # Título
+        title_label = ttk.Label(main_frame, text="Historial de Cambios", font=('Arial', 12, 'bold'))
+        title_label.grid(row=1, column=0, pady=(10, 5))
+
+        # Frame de tabla
+        table_frame = tk.Frame(main_frame)
+        table_frame.grid(row=2, column=0, sticky="nsew")
+        main_frame.rowconfigure(2, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+
+        # Frame de botones
+        button_frame = tk.Frame(main_frame)
+        button_frame.grid(row=99, column=0, sticky="ew", pady=(10, 0))
+        close_btn = ttk.Button(button_frame, text="Cerrar", command=self.dialog.destroy)
+        close_btn.grid(row=0, column=0, sticky="e")
 
         # Grid para información
         info_frame.columnconfigure(1, weight=1)
@@ -57,13 +76,6 @@ class HistorialDialog:
 
         ttk.Label(info_frame, text="Descripción:").grid(row=1, column=2, sticky="w", padx=(20, 5), pady=(5, 0))
         ttk.Label(info_frame, text=self.cuenta.descripcion).grid(row=1, column=3, sticky="w", pady=(5, 0))
-
-        # Título del historial
-        ttk.Label(main_frame, text="Historial de Cambios", font=('Arial', 12, 'bold')).pack(pady=(10, 5))
-
-        # Frame para la tabla de historial
-        table_frame = ttk.Frame(main_frame)
-        table_frame.pack(fill=tk.BOTH, expand=True)
 
         # Crear Treeview para el historial
         columns = ('Fecha', 'Tipo', 'Descripción', 'Detalles')
@@ -92,12 +104,6 @@ class HistorialDialog:
 
         # Configurar estilos para diferentes tipos de cambio
         self._configurar_estilos()
-
-        # Botones
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-
-        ttk.Button(button_frame, text="Cerrar", command=self.dialog.destroy).pack(side=tk.RIGHT)
 
     def _configurar_estilos(self):
         """Configura los estilos para diferentes tipos de cambio"""

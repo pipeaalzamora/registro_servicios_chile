@@ -9,6 +9,7 @@ from typing import List, Callable, Optional
 
 from ...domain.entities import TipoServicio, CuentaServicio
 from ...infrastructure.utils import formatear_moneda_clp_simple
+from ..themes import theme_manager
 
 
 class CuentaTable:
@@ -29,87 +30,154 @@ class CuentaTable:
         self.cuentas_vencidas_var = tk.StringVar(value="Cuentas Vencidas: 0")
         self.cuentas_riesgo_var = tk.StringVar(value="En Riesgo de Corte: 0")
 
+        # Variable para búsqueda
+        self.busqueda_var = tk.StringVar()
+
         self.setup_ui()
 
     def setup_ui(self):
         """Configura la interfaz del componente"""
         # Frame principal
         self.main_frame = ttk.Frame(self.parent)
-        self.main_frame.grid(row=0, column=0, sticky="nsew")
+        self.main_frame.grid(row=0, column=0, sticky="nsew", padx=3, pady=3)
 
-        # Configurar grid
+        # Configurar grid responsive
         self.main_frame.columnconfigure(1, weight=1)
-        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
 
+        self.setup_search_bar()
         self.setup_filters()
         self.setup_table()
+        self.setup_stats()
+
+    def setup_search_bar(self):
+        """Configura la barra de búsqueda"""
+        # Frame de búsqueda
+        search_frame = ttk.Frame(self.main_frame)
+        search_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 3))
+        search_frame.columnconfigure(1, weight=1)
+
+        # Label de búsqueda
+        search_label = tk.Label(search_frame, text="🔍 Búsqueda rápida:")
+        search_label.grid(row=0, column=0, padx=(0, 3), sticky="w")
+
+        # Entry de búsqueda
+        self.search_entry = tk.Entry(
+            search_frame,
+            textvariable=self.busqueda_var,
+            font=("Arial", 9),
+            relief="flat",
+            borderwidth=1
+        )
+        self.search_entry.grid(row=0, column=1, sticky="ew", padx=(0, 3))
+        self.search_entry.bind('<KeyRelease>', self.aplicar_filtros)
+
+        # Botón limpiar búsqueda
+        clear_button = tk.Button(
+            search_frame,
+            text="✕",
+            command=self.limpiar_busqueda,
+            relief="flat",
+            borderwidth=1,
+            width=3,
+            cursor="hand2"
+        )
+        clear_button.grid(row=0, column=2)
+
+        # Aplicar tema
+        theme_manager.apply_theme_to_widget(search_label)
+        theme_manager.apply_theme_to_widget(self.search_entry)
+        theme_manager.apply_theme_to_widget(clear_button)
 
     def setup_filters(self):
-        """Configura el panel de filtros y estadísticas"""
+        """Configura el panel de filtros"""
         # Frame de filtros
-        filter_frame = ttk.LabelFrame(self.main_frame, text="Filtros", padding="5")
-        filter_frame.grid(row=0, column=0, sticky="nw", padx=(0, 10))
-
-        # Búsqueda rápida
-        ttk.Label(filter_frame, text="Búsqueda:").grid(row=0, column=0, sticky="w")
-        self.busqueda_var = tk.StringVar()
-        busqueda_entry = ttk.Entry(filter_frame, textvariable=self.busqueda_var, width=20)
-        busqueda_entry.grid(row=0, column=1, sticky="ew", padx=(5, 0))
-        busqueda_entry.bind('<KeyRelease>', self.aplicar_filtros)
-        ttk.Label(filter_frame, text="(nombre, descripción, monto)").grid(row=0, column=2, sticky="w", padx=(5, 0))
+        filter_frame = ttk.LabelFrame(self.main_frame, text="Filtros", padding="3")
+        filter_frame.grid(row=1, column=0, sticky="nw", padx=(0, 3))
 
         # Filtro por tipo
-        ttk.Label(filter_frame, text="Tipo de Servicio:").grid(row=1, column=0, sticky="w", pady=(10, 0))
-        tipo_combo = ttk.Combobox(filter_frame, textvariable=self.tipo_var,
-                                 values=["Todos"] + [t.value for t in TipoServicio])
-        tipo_combo.grid(row=1, column=1, sticky="ew", padx=(5, 0), pady=(10, 0))
+        tipo_label = tk.Label(filter_frame, text="Tipo de Servicio:")
+        tipo_label.grid(row=0, column=0, sticky="w", pady=(0, 2))
+
+        tipo_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.tipo_var,
+            values=["Todos"] + [t.value for t in TipoServicio],
+            state="readonly",
+            width=12
+        )
+        tipo_combo.grid(row=1, column=0, sticky="ew", pady=(0, 3))
         tipo_combo.bind('<<ComboboxSelected>>', self.aplicar_filtros)
 
         # Filtro por estado
-        ttk.Label(filter_frame, text="Estado:").grid(row=2, column=0, sticky="w", pady=(10, 0))
-        estado_combo = ttk.Combobox(filter_frame, textvariable=self.estado_var,
-                                   values=["Todos", "Pendiente", "Pagado", "Vencido", "En Riesgo de Corte"])
-        estado_combo.grid(row=2, column=1, sticky="ew", padx=(5, 0), pady=(10, 0))
+        estado_label = tk.Label(filter_frame, text="Estado:")
+        estado_label.grid(row=2, column=0, sticky="w", pady=(0, 2))
+
+        estado_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=self.estado_var,
+            values=["Todos", "Pendiente", "Pagado", "Vencido", "En Riesgo de Corte"],
+            state="readonly",
+            width=12
+        )
+        estado_combo.grid(row=3, column=0, sticky="ew", pady=(0, 3))
         estado_combo.bind('<<ComboboxSelected>>', self.aplicar_filtros)
 
         # Botón limpiar filtros
-        ttk.Button(filter_frame, text="Limpiar Filtros",
-                  command=self.limpiar_filtros).grid(row=3, column=0, columnspan=2, pady=(10, 0))
+        clear_filters_button = tk.Button(
+            filter_frame,
+            text="🔄 Limpiar Filtros",
+            command=self.limpiar_filtros,
+            relief="flat",
+            borderwidth=1,
+            cursor="hand2"
+        )
+        clear_filters_button.grid(row=4, column=0, pady=(3, 0), sticky="ew")
 
-        # Frame de estadísticas
-        stats_frame = ttk.LabelFrame(filter_frame, text="Estadísticas", padding="5")
-        stats_frame.grid(row=3, column=0, columnspan=2, pady=(20, 0), sticky="ew")
-
-        ttk.Label(stats_frame, textvariable=self.total_pendiente_var).grid(row=0, column=0, sticky="w")
-        ttk.Label(stats_frame, textvariable=self.total_pagado_var).grid(row=1, column=0, sticky="w")
-        ttk.Label(stats_frame, textvariable=self.cuentas_vencidas_var).grid(row=2, column=0, sticky="w")
-        ttk.Label(stats_frame, textvariable=self.cuentas_riesgo_var).grid(row=3, column=0, sticky="w")
+        # Aplicar tema
+        theme_manager.apply_theme_to_widget(tipo_label)
+        theme_manager.apply_theme_to_widget(estado_label)
+        theme_manager.apply_theme_to_widget(clear_filters_button)
 
     def setup_table(self):
         """Configura la tabla de cuentas"""
         # Frame de tabla
         table_frame = ttk.Frame(self.main_frame)
-        table_frame.grid(row=0, column=1, sticky="nsew")
+        table_frame.grid(row=1, column=1, sticky="nsew")
 
-        # Crear Treeview
+        # Crear Treeview con columnas responsive
         columns = ('Servicio', 'Emisión', 'Vencimiento', 'Próxima Lectura', 'Fecha Corte', 'Monto', 'Estado', 'Descripción')
-        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=20)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
 
-        # Configurar columnas
+        # Configurar columnas con anchos responsive
+        column_widths = {
+            'Servicio': 100,
+            'Emisión': 80,
+            'Vencimiento': 80,
+            'Próxima Lectura': 100,
+            'Fecha Corte': 80,
+            'Monto': 100,
+            'Estado': 120,
+            'Descripción': 200
+        }
+
         for col in columns:
             self.tree.heading(col, text=col, command=lambda c=col: self.ordenar_por_columna(c))
-            self.tree.column(col, width=120)
+            self.tree.column(col, width=column_widths[col], minwidth=50)
 
         # Variables para ordenamiento
         self.orden_actual = None
         self.columna_orden = None
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        # Scrollbars
+        v_scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        h_scrollbar = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
 
+        # Grid de tabla y scrollbars
         self.tree.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+        h_scrollbar.grid(row=1, column=0, sticky="ew")
 
         table_frame.columnconfigure(0, weight=1)
         table_frame.rowconfigure(0, weight=1)
@@ -120,16 +188,53 @@ class CuentaTable:
 
         # Menú contextual
         self.context_menu = tk.Menu(self.parent, tearoff=0)
-        self.context_menu.add_command(label="Editar", command=self.on_edit_requested)
-        self.context_menu.add_command(label="Marcar como Pagada", command=self.on_mark_paid_requested)
-        self.context_menu.add_command(label="Ver Historial", command=self.on_ver_historial_requested)
+        self.context_menu.add_command(label="✏️ Editar", command=self.on_edit_requested)
+        self.context_menu.add_command(label="✅ Marcar como Pagada", command=self.on_mark_paid_requested)
+        self.context_menu.add_command(label="📋 Ver Historial", command=self.on_ver_historial_requested)
         self.context_menu.add_separator()
-        self.context_menu.add_command(label="Eliminar", command=self.on_delete_requested)
+        self.context_menu.add_command(label="🗑️ Eliminar", command=self.on_delete_requested)
 
         self.tree.bind('<Button-3>', self.mostrar_menu_contextual)
 
         # Configurar estilos de colores
         self._configurar_estilos()
+
+    def setup_stats(self):
+        """Configura el panel de estadísticas"""
+        # Frame de estadísticas
+        stats_frame = ttk.LabelFrame(self.main_frame, text="📊 Estadísticas", padding="3")
+        stats_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(3, 0))
+
+        # Grid para estadísticas
+        stats_frame.columnconfigure(0, weight=1)
+        stats_frame.columnconfigure(1, weight=1)
+        stats_frame.columnconfigure(2, weight=1)
+        stats_frame.columnconfigure(3, weight=1)
+
+        # Labels de estadísticas con iconos
+        stats_data = [
+            (self.total_pendiente_var, "💰", 0),
+            (self.total_pagado_var, "✅", 1),
+            (self.cuentas_vencidas_var, "⚠️", 2),
+            (self.cuentas_riesgo_var, "🔴", 3)
+        ]
+
+        for var, icon, col in stats_data:
+            label = tk.Label(
+                stats_frame,
+                textvariable=var,
+                font=("Arial", 9, "bold"),
+                anchor="center"
+            )
+            label.grid(row=0, column=col, padx=2, pady=2, sticky="ew")
+
+            # Aplicar tema
+            theme_manager.apply_theme_to_widget(label)
+
+    def limpiar_busqueda(self):
+        """Limpia el campo de búsqueda"""
+        self.busqueda_var.set("")
+        self.aplicar_filtros()
 
     def cargar_cuentas(self):
         """Carga todas las cuentas en la tabla"""
@@ -141,12 +246,7 @@ class CuentaTable:
     def mostrar_cuentas(self, cuentas: List[CuentaServicio]):
         """Muestra las cuentas en la tabla"""
         for cuenta in cuentas:
-            estado = "Pagado" if cuenta.pagado else "Pendiente"
-            if cuenta.esta_vencida():
-                estado = "Vencido"
-            elif cuenta.esta_en_riesgo_corte():
-                estado = "En Riesgo de Corte"
-
+            estado = cuenta.get_estado()
             # Formatear fechas opcionales
             proxima_lectura = cuenta.fecha_proxima_lectura.strftime('%d/%m/%Y') if cuenta.fecha_proxima_lectura else "-"
             fecha_corte = cuenta.fecha_corte.strftime('%d/%m/%Y') if cuenta.fecha_corte else "-"
@@ -201,23 +301,17 @@ class CuentaTable:
         # Filtrar por estado
         if self.estado_var.get() != "Todos":
             estado_filtro = self.estado_var.get()
-            if estado_filtro == "Pendiente":
-                cuentas = [c for c in cuentas if not c.pagado and not c.esta_vencida() and not c.esta_en_riesgo_corte()]
-            elif estado_filtro == "Pagado":
-                cuentas = [c for c in cuentas if c.pagado]
-            elif estado_filtro == "Vencido":
-                cuentas = [c for c in cuentas if c.esta_vencida()]
-            elif estado_filtro == "En Riesgo de Corte":
-                cuentas = [c for c in cuentas if c.esta_en_riesgo_corte()]
+            cuentas = [c for c in cuentas if c.get_estado() == estado_filtro]
 
         self.mostrar_cuentas(cuentas)
+        self.actualizar_estadisticas()
 
     def limpiar_filtros(self):
         """Limpia todos los filtros"""
-        self.busqueda_var.set("")
         self.tipo_var.set("Todos")
         self.estado_var.set("Todos")
-        self.cargar_cuentas()
+        self.busqueda_var.set("")
+        self.aplicar_filtros()
 
     def actualizar_estadisticas(self):
         """Actualiza las estadísticas mostradas"""
@@ -239,146 +333,122 @@ class CuentaTable:
         if not selection:
             return None
 
-        item = self.tree.item(selection[0])
-        cuenta_id = item['tags'][0] if item['tags'] else None
-        if cuenta_id:
-            return self.gestionar_cuenta.obtener_cuenta(cuenta_id)
-        return None
+        item_id = selection[0]
+        cuenta_id = self.tree.item(item_id, 'tags')[0]
+        return self.gestionar_cuenta.obtener_cuenta(cuenta_id)
 
     def on_double_click(self, event):
-        """Maneja el doble clic en la tabla"""
+        """Maneja el doble clic en una fila"""
         if self.on_cuenta_selected:
             self.on_cuenta_selected()
 
     def on_selection_change(self, event):
         """Maneja el cambio de selección"""
-        pass  # Para futuras implementaciones
+        if self.on_cuenta_selected:
+            self.on_cuenta_selected()
 
     def on_edit_requested(self):
-        """Callback para editar cuenta"""
+        """Maneja la solicitud de edición desde el menú contextual"""
         if self.on_cuenta_selected:
             self.on_cuenta_selected()
 
     def on_mark_paid_requested(self):
-        """Callback para marcar como pagada"""
+        """Maneja la solicitud de marcar como pagada"""
         cuenta = self.obtener_cuenta_seleccionada()
-        if cuenta:
-            if self.gestionar_cuenta.marcar_como_pagada(cuenta.id):
+        if cuenta and not cuenta.pagado:
+            try:
+                self.gestionar_cuenta.marcar_como_pagada(cuenta.id)
+                self.refresh()
                 messagebox.showinfo("Éxito", "Cuenta marcada como pagada")
-                self.cargar_cuentas()
-            else:
-                messagebox.showerror("Error", "No se pudo marcar la cuenta como pagada")
-        else:
-            messagebox.showwarning("Advertencia", "Por favor seleccione una cuenta")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al marcar como pagada: {str(e)}")
 
     def on_ver_historial_requested(self):
-        """Callback para ver historial de cuenta"""
+        """Maneja la solicitud de ver historial"""
         cuenta = self.obtener_cuenta_seleccionada()
         if cuenta:
-            from .historial_dialog import HistorialDialog
-            dialog = HistorialDialog(self.parent, cuenta)
-            dialog.show()
-        else:
-            messagebox.showwarning("Advertencia", "Por favor seleccione una cuenta")
+            # Aquí se mostraría el diálogo de historial
+            messagebox.showinfo("Historial", f"Historial de cambios para {cuenta.tipo_servicio.value}")
 
     def on_delete_requested(self):
-        """Callback para eliminar cuenta"""
+        """Maneja la solicitud de eliminación"""
         cuenta = self.obtener_cuenta_seleccionada()
         if cuenta:
-            if messagebox.askyesno("Confirmar", "¿Está seguro de que desea eliminar esta cuenta?"):
-                if self.gestionar_cuenta.eliminar_cuenta(cuenta.id):
+            if messagebox.askyesno("Confirmar", f"¿Eliminar cuenta de {cuenta.tipo_servicio.value}?"):
+                try:
+                    self.gestionar_cuenta.eliminar_cuenta(cuenta.id)
+                    self.refresh()
                     messagebox.showinfo("Éxito", "Cuenta eliminada")
-                    self.cargar_cuentas()
-                else:
-                    messagebox.showerror("Error", "No se pudo eliminar la cuenta")
-        else:
-            messagebox.showwarning("Advertencia", "Por favor seleccione una cuenta")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al eliminar: {str(e)}")
 
     def ordenar_por_columna(self, columna):
         """Ordena la tabla por la columna especificada"""
-        # Cambiar orden si es la misma columna
-        if self.columna_orden == columna:
-            self.orden_actual = not self.orden_actual if self.orden_actual is not None else False
-        else:
-            self.columna_orden = columna
-            self.orden_actual = False  # Ascendente por defecto
-
         # Obtener datos actuales
-        items = self.tree.get_children()
-        if not items:
-            return
+        items = [(self.tree.set(item, columna), item) for item in self.tree.get_children('')]
 
-        # Obtener datos de las filas
-        datos = []
-        for item in items:
-            valores = self.tree.item(item)['values']
-            datos.append((valores, item))
+        # Determinar orden
+        if self.columna_orden == columna:
+            self.orden_actual = not self.orden_actual
+        else:
+            self.orden_actual = True
+            self.columna_orden = columna
 
-        # Ordenar datos
-        datos_ordenados = self._ordenar_datos(datos, columna, self.orden_actual)
+        # Ordenar
+        items.sort(key=lambda x: self._convertir_para_ordenar(x[0], columna), reverse=not self.orden_actual)
 
-        # Reinsertar datos ordenados
-        self.limpiar_tabla()
-        for valores, _ in datos_ordenados:
-            self.tree.insert('', 'end', values=valores, tags=valores[-1])  # El último valor es el ID
+        # Reordenar en la tabla
+        for index, (_, item) in enumerate(items):
+            self.tree.move(item, '', index)
 
-        # Actualizar encabezado con indicador de orden
+        # Actualizar encabezados
         self._actualizar_encabezado_orden(columna)
+
+    def _convertir_para_ordenar(self, valor, columna):
+        """Convierte valores para ordenamiento correcto"""
+        if columna == 'Monto':
+            # Extraer número del formato de moneda
+            try:
+                return float(valor.replace('$', '').replace('.', '').replace(',', ''))
+            except:
+                return 0
+        elif columna in ['Emisión', 'Vencimiento', 'Próxima Lectura', 'Fecha Corte']:
+            # Convertir fecha
+            try:
+                return datetime.strptime(valor, '%d/%m/%Y')
+            except:
+                return datetime.min
+        else:
+            return valor.lower()
 
     def _configurar_estilos(self):
         """Configura los estilos de colores para la tabla"""
+        style = ttk.Style()
+
         # Configurar colores para diferentes estados
-        self.tree.tag_configure('pagado', background='#d4edda', foreground='#155724')  # Verde claro
-        self.tree.tag_configure('vencido', background='#f8d7da', foreground='#721c24')  # Rojo claro
-        self.tree.tag_configure('riesgo', background='#fff3cd', foreground='#856404')  # Amarillo claro
-        self.tree.tag_configure('pendiente', background='#d1ecf1', foreground='#0c5460')  # Azul claro
+        style.map('Treeview',
+                 background=[('selected', '#007bff')],
+                 foreground=[('selected', 'white')])
 
-    def _ordenar_datos(self, datos, columna, ascendente):
-        """Ordena los datos según la columna especificada"""
-        columna_index = {
-            'Servicio': 0,
-            'Emisión': 1,
-            'Vencimiento': 2,
-            'Próxima Lectura': 3,
-            'Fecha Corte': 4,
-            'Monto': 5,
-            'Estado': 6,
-            'Descripción': 7
-        }
-
-        index = columna_index.get(columna, 0)
-
-        def key_func(item):
-            valor = item[0][index]
-
-            # Manejar casos especiales
-            if columna in ['Emisión', 'Vencimiento', 'Próxima Lectura', 'Fecha Corte']:
-                if valor == '-':
-                    return datetime.min
-                try:
-                    return datetime.strptime(valor, '%d/%m/%Y')
-                except:
-                    return datetime.min
-            elif columna == 'Monto':
-                # Extraer número del formato de moneda
-                try:
-                    return float(valor.replace('$', '').replace(',', ''))
-                except:
-                    return 0.0
-            else:
-                return str(valor).lower()
-
-        return sorted(datos, key=key_func, reverse=not ascendente)
+        # Configurar tags de colores
+        self.tree.tag_configure('pagado', background='#d4edda', foreground='#155724')
+        self.tree.tag_configure('vencido', background='#f8d7da', foreground='#721c24')
+        self.tree.tag_configure('riesgo', background='#fff3cd', foreground='#856404')
+        self.tree.tag_configure('pendiente', background='#f8f9fa', foreground='#6c757d')
 
     def _actualizar_encabezado_orden(self, columna):
-        """Actualiza el encabezado para mostrar el orden actual"""
+        """Actualiza el encabezado para mostrar el orden"""
         # Limpiar todos los encabezados
         for col in self.tree['columns']:
-            self.tree.heading(col, text=col)
+            current_text = self.tree.heading(col)['text']
+            if current_text.endswith(' ↑') or current_text.endswith(' ↓'):
+                current_text = current_text[:-2]
+            self.tree.heading(col, text=current_text)
 
-        # Agregar indicador de orden
-        indicador = " ▲" if self.orden_actual else " ▼"
-        self.tree.heading(columna, text=columna + indicador)
+        # Agregar indicador al encabezado actual
+        current_text = self.tree.heading(columna)['text']
+        indicator = ' ↑' if self.orden_actual else ' ↓'
+        self.tree.heading(columna, text=current_text + indicator)
 
     def mostrar_menu_contextual(self, event):
         """Muestra el menú contextual"""
@@ -390,3 +460,12 @@ class CuentaTable:
     def refresh(self):
         """Actualiza la tabla"""
         self.cargar_cuentas()
+
+    def focus_search(self):
+        """Enfoca el campo de búsqueda"""
+        self.search_entry.focus_set()
+        self.search_entry.select_range(0, tk.END)
+
+    def get_widget(self):
+        """Retorna el widget principal del componente"""
+        return self.main_frame

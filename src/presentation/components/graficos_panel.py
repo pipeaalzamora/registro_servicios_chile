@@ -27,39 +27,44 @@ class GraficosPanel:
     def setup_ui(self):
         """Configura la interfaz del componente"""
         # Frame principal
-        self.main_frame = ttk.Frame(self.parent)
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.main_frame = tk.Frame(self.parent)
+        self.main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.parent.columnconfigure(0, weight=1)
+        self.parent.rowconfigure(0, weight=1)
 
         # Título
-        title_label = ttk.Label(self.main_frame, text="Gráficos y Estadísticas",
-                               font=('Arial', 14, 'bold'))
-        title_label.pack(pady=(0, 10))
+        title_label = tk.Label(self.main_frame, text="Gráficos y Estadísticas", font=("Arial", 16, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 10), sticky="w")
 
-        # Frame para controles
-        controls_frame = ttk.Frame(self.main_frame)
-        controls_frame.pack(fill=tk.X, pady=(0, 10))
+        # Frame de controles
+        controls_frame = tk.Frame(self.main_frame)
+        controls_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        self.main_frame.columnconfigure(0, weight=1)
 
         # Selector de tipo de gráfico
-        ttk.Label(controls_frame, text="Tipo de Gráfico:").pack(side=tk.LEFT, padx=(0, 5))
+        tipo_label = tk.Label(controls_frame, text="Tipo de Gráfico:")
+        tipo_label.grid(row=0, column=0, padx=(0, 5))
         self.tipo_grafico_var = tk.StringVar(value="Gastos por Servicio")
-        tipo_combo = ttk.Combobox(controls_frame, textvariable=self.tipo_grafico_var,
-                                 values=["Gastos por Servicio", "Gastos por Mes", "Evolución Anual"],
-                                 state="readonly", width=20)
-        tipo_combo.pack(side=tk.LEFT, padx=(0, 10))
+        self.tipos_grafico = ["Gastos por Servicio", "Gastos por Mes", "Evolución Anual"]
+        tipo_combo = ttk.Combobox(controls_frame, textvariable=self.tipo_grafico_var, values=self.tipos_grafico, state="readonly")
+        tipo_combo.grid(row=0, column=1, padx=(0, 10))
         tipo_combo.bind('<<ComboboxSelected>>', self.actualizar_grafico)
 
         # Botón actualizar
-        ttk.Button(controls_frame, text="Actualizar",
-                  command=self.actualizar_grafico).pack(side=tk.LEFT)
+        actualizar_btn = ttk.Button(controls_frame, text="Actualizar", command=self.actualizar_grafico)
+        actualizar_btn.grid(row=0, column=2)
 
-        # Frame para el gráfico
-        self.grafico_frame = ttk.Frame(self.main_frame)
-        self.grafico_frame.pack(fill=tk.BOTH, expand=True)
+        # Frame del gráfico
+        self.grafico_frame = tk.Frame(self.main_frame)
+        self.grafico_frame.grid(row=2, column=0, sticky="nsew")
+        self.main_frame.rowconfigure(2, weight=1)
 
         # Crear figura de matplotlib
         self.fig = Figure(figsize=(10, 6), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, self.grafico_frame)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        self.grafico_frame.rowconfigure(0, weight=1)
+        self.grafico_frame.columnconfigure(0, weight=1)
 
         # Cargar gráfico inicial
         self.actualizar_grafico()
