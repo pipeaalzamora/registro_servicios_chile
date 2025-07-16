@@ -11,9 +11,13 @@ import os
 from ..domain.entities import CuentaServicio
 from ..application.casos_uso import GestionarCuentaServicio, GenerarReportes, Notificaciones
 from ..infrastructure.pdf_service import PDFService
+from ..ai.chatbot_service import ChatbotService
 from .components import CuentaTable, ButtonPanel, CuentaDialog
+from .components.menu_bar import MenuBar
+from .components.ai_panel import AIPanel
+from .components.chatbot_panel import ChatbotWindow
 from .themes import theme_manager
-from .utils import error_handler, handle_ui_errors
+from .utils import error_handler, handle_ui_errors, centrar_ventana
 
 
 class MainWindow:
@@ -27,6 +31,9 @@ class MainWindow:
         self.generar_reportes = generar_reportes
         self.notificaciones = notificaciones
         self.pdf_service = pdf_service
+
+        # Inicializar servicio de chatbot
+        self.chatbot_service = ChatbotService(gestionar_cuenta)
 
         self.root = tk.Tk()
         self.root.title("Registro de Servicios Chile")
@@ -44,6 +51,7 @@ class MainWindow:
 
         self.setup_ui()
         self.setup_menu()
+        self.setup_ai_panel()
         self.setup_status_bar()
         self.cargar_cuentas()
         self.mostrar_notificaciones()
@@ -100,8 +108,11 @@ class MainWindow:
             on_editar_cuenta=self.editar_cuenta_seleccionada,
             on_marcar_pagada=self.marcar_como_pagada,
             on_eliminar_cuenta=self.eliminar_cuenta_seleccionada,
+            on_eliminar_multiple=self.eliminar_cuentas_seleccionadas,
             on_mostrar_graficos=self.mostrar_graficos,
-            on_theme_change=self.on_theme_change
+            on_theme_change=self.on_theme_change,
+            on_mostrar_ia=self.mostrar_panel_ia,
+            on_mostrar_asistente=self.mostrar_asistente
         )
         self.button_panel.get_widget().grid(row=1, column=0, sticky="ew", pady=(2, 3))
 
@@ -109,7 +120,7 @@ class MainWindow:
         self.cuenta_table = CuentaTable(
             parent=self.main_frame,
             gestionar_cuenta=self.gestionar_cuenta,
-            on_cuenta_selected=self.editar_cuenta_seleccionada
+            on_cuenta_selected=None  # No abrir automáticamente el panel de edición
         )
         self.cuenta_table.get_widget().grid(row=2, column=0, sticky="nsew")
 
@@ -160,46 +171,64 @@ class MainWindow:
         theme_manager.apply_theme_to_widget(tutorial_button)
 
     def setup_menu(self):
-        """Configura el menú principal"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+        """Configura la barra de menú"""
+        self.menu_bar = MenuBar(self.root, self)
+        self.root.config(menu=self.menu_bar.menu)
 
-        # Menú Archivo
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Archivo", menu=file_menu)
-        file_menu.add_command(label="Nuevo Registro", command=self.mostrar_dialogo_nueva_cuenta, accelerator="Ctrl+N")
-        file_menu.add_separator()
-        file_menu.add_command(label="Salir", command=self.on_closing, accelerator="Ctrl+Q")
+    def setup_ai_panel(self):
+        """Configura el panel de IA"""
+        self.ai_panel = None
+        self.ai_window = None
 
-        # Menú Editar
-        edit_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Editar", menu=edit_menu)
-        edit_menu.add_command(label="Editar Cuenta", command=self.editar_cuenta_seleccionada, accelerator="Ctrl+E")
-        edit_menu.add_command(label="Marcar como Pagada", command=self.marcar_como_pagada)
-        edit_menu.add_separator()
-        edit_menu.add_command(label="Eliminar Cuenta", command=self.eliminar_cuenta_seleccionada)
+    def mostrar_panel_ia(self):
+        """Muestra el panel de Inteligencia Artificial Avanzado"""
+        if not hasattr(self, 'ai_window') or not self.ai_window:
+            self.ai_window = tk.Toplevel(self.root)
+            self.ai_window.title("🚀 IA Avanzada - Análisis Inteligente")
+            self.ai_window.geometry("1000x700")
+            self.ai_window.minsize(900, 600)
+            self.ai_window.transient(self.root)
 
-        # Menú Ver
-        view_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Ver", menu=view_menu)
-        view_menu.add_command(label="Gráficos", command=self.mostrar_graficos, accelerator="Ctrl+G")
-        view_menu.add_separator()
-        view_menu.add_command(label="Cambiar Tema", command=self.toggle_theme, accelerator="Ctrl+T")
+            # Centrar ventana respecto a la principal
+            centrar_ventana(self.ai_window, self.root, 1000, 700)
 
-        # Menú Reportes
-        reports_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Reportes", menu=reports_menu)
-        reports_menu.add_command(label="Reporte General", command=self.generar_reporte_general, accelerator="Ctrl+R")
-        reports_menu.add_command(label="Resumen Mensual", command=self.generar_resumen_mensual)
-        reports_menu.add_command(label="Reporte Anual", command=self.generar_reporte_anual)
+            # Aplicar tema
+            theme_manager.apply_theme_to_widget(self.ai_window)
 
-        # Menú Ayuda
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Ayuda", menu=help_menu)
-        help_menu.add_command(label="Tutorial", command=self.mostrar_tutorial, accelerator="F1")
-        help_menu.add_command(label="Ayuda Rápida", command=self.mostrar_ayuda_rapida)
-        help_menu.add_separator()
-        help_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
+            # Configurar grid
+            self.ai_window.columnconfigure(0, weight=1)
+            self.ai_window.rowconfigure(0, weight=1)
+
+            # Crear panel de IA avanzado
+            from .components.advanced_ai_panel import AdvancedAIPanel
+            self.ai_panel = AdvancedAIPanel(self.ai_window, self.gestionar_cuenta)
+
+            # Agregar panel de IA
+            ai_widget = self.ai_panel.get_widget()
+            ai_widget.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+            # Configurar evento de cierre para limpiar la referencia
+            self.ai_window.protocol("WM_DELETE_WINDOW", self.cerrar_panel_ia)
+
+            self.actualizar_estado("Panel de IA Avanzada abierto")
+        else:
+            try:
+                # Verificar si la ventana aún existe
+                self.ai_window.winfo_exists()
+                self.ai_window.lift()
+                self.ai_window.focus()
+            except tk.TclError:
+                # La ventana fue cerrada, limpiar referencia y crear nueva
+                self.ai_window = None
+                self.ai_panel = None
+                self.mostrar_panel_ia()
+
+    def cerrar_panel_ia(self):
+        """Cierra el panel de IA y limpia la referencia"""
+        if self.ai_window:
+            self.ai_window.destroy()
+            self.ai_window = None
+            self.ai_panel = None
 
     def setup_status_bar(self):
         """Configura la barra de estado"""
@@ -311,6 +340,37 @@ class MainWindow:
         else:
             messagebox.showwarning("Advertencia", "Por favor seleccione una cuenta")
 
+    @handle_ui_errors("Error al eliminar múltiples", "MainWindow.eliminar_cuentas_seleccionadas")
+    def eliminar_cuentas_seleccionadas(self):
+        """Elimina las cuentas seleccionadas"""
+        cuentas_seleccionadas = self.cuenta_table.obtener_cuentas_seleccionadas()
+
+        if not cuentas_seleccionadas:
+            messagebox.showwarning("Advertencia", "Por favor seleccione al menos una cuenta")
+            return
+
+        if len(cuentas_seleccionadas) == 1:
+            # Usar el método de eliminación simple
+            self.eliminar_cuenta_seleccionada()
+        else:
+            # Múltiples cuentas seleccionadas
+            servicios = [c.tipo_servicio.value for c in cuentas_seleccionadas]
+            total_monto = sum(c.monto for c in cuentas_seleccionadas)
+
+            mensaje = f"¿Eliminar {len(cuentas_seleccionadas)} cuentas seleccionadas?\n\n"
+            mensaje += f"Servicios: {', '.join(servicios)}\n"
+            mensaje += f"Total: ${total_monto:,.0f} CLP"
+
+            if messagebox.askyesno("Confirmar Eliminación Múltiple", mensaje):
+                try:
+                    for cuenta in cuentas_seleccionadas:
+                        self.gestionar_cuenta.eliminar_cuenta(cuenta.id)
+                    self.cargar_cuentas()
+                    self.actualizar_estado(f"{len(cuentas_seleccionadas)} cuentas eliminadas")
+                    messagebox.showinfo("Éxito", f"{len(cuentas_seleccionadas)} cuentas eliminadas")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al eliminar cuentas: {str(e)}")
+
     @handle_ui_errors("Error al generar reporte", "MainWindow.generar_reporte_general")
     def generar_reporte_general(self):
         """Genera un reporte PDF general"""
@@ -368,6 +428,9 @@ class MainWindow:
             graficos_window.geometry("900x700")
             graficos_window.minsize(800, 600)
 
+            # Centrar ventana respecto a la principal
+            centrar_ventana(graficos_window, self.root, 900, 700)
+
             # Aplicar tema a la ventana de gráficos
             theme_manager.apply_theme_to_widget(graficos_window)
 
@@ -379,6 +442,41 @@ class MainWindow:
             self.actualizar_estado("Ventana de gráficos abierta")
         except Exception as e:
             messagebox.showerror("Error", f"Error al abrir gráficos: {str(e)}")
+
+    def mostrar_asistente(self):
+        """Muestra el asistente virtual"""
+        try:
+            # Crear callback para acciones del asistente
+            def on_action_callback(action: str):
+                """Maneja acciones sugeridas por el asistente"""
+                if action == "nueva_cuenta":
+                    self.mostrar_dialogo_nueva_cuenta()
+                elif action == "graficos":
+                    self.mostrar_graficos()
+                elif action == "ia":
+                    self.mostrar_panel_ia()
+                elif action == "reporte":
+                    self.generar_reporte_general()
+                # Agregar más acciones según sea necesario
+
+            # Crear y mostrar ventana del asistente
+            chatbot_window = ChatbotWindow(
+                self.root,
+                self.chatbot_service,
+                on_action_callback
+            )
+            chatbot_window.show()
+
+            self.actualizar_estado("Asistente virtual abierto")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al abrir el asistente: {str(e)}")
+
+    def cerrar_chatbot_panel(self):
+        """Cierra el panel de asistente y limpia la referencia"""
+        if self.chatbot_window:
+            self.chatbot_window.destroy()
+            self.chatbot_window = None
+            self.chatbot_panel = None
 
     def on_closing(self):
         """Maneja el cierre de la aplicación"""
@@ -394,6 +492,7 @@ class MainWindow:
         self.root.bind('<Control-g>', lambda e: self.mostrar_graficos())
         self.root.bind('<Control-r>', lambda e: self.generar_reporte_general())
         self.root.bind('<Control-t>', lambda e: self.toggle_theme())
+        self.root.bind('<Control-i>', lambda e: self.mostrar_panel_ia())
         self.root.bind('<F1>', lambda e: self.mostrar_tutorial())
         self.root.bind('<Control-q>', lambda e: self.on_closing())
 
