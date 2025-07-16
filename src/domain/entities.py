@@ -2,11 +2,13 @@
 Entidades del dominio de la aplicación
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, List
 import re
+
+from .validators import CuentaServicioValidator
 
 
 class TipoServicio(Enum):
@@ -15,22 +17,22 @@ class TipoServicio(Enum):
     AGUA = "Agua"
     GAS = "Gas"
     INTERNET = "Internet"
-    GASTOS_COMUNES = "Gastos Comunes"
+    TELEFONO = "Teléfono"
+    BASURA = "Basura"
+    OTRO = "Otro"
 
 
 class TipoCambio(Enum):
     """Tipos de cambios en el historial"""
-    CREACION = "Creación"
     PAGO = "Pago"
     EDICION = "Edición"
-    ELIMINACION = "Eliminación"
     VENCIMIENTO = "Vencimiento"
     RIESGO_CORTE = "Riesgo de Corte"
 
 
 @dataclass
 class HistorialCambio:
-    """Entidad para rastrear cambios en las cuentas"""
+    """Entidad para registrar cambios en las cuentas"""
     id: str
     cuenta_id: str
     tipo_cambio: TipoCambio
@@ -39,10 +41,30 @@ class HistorialCambio:
     datos_anteriores: Optional[dict] = None
     datos_nuevos: Optional[dict] = None
 
-    def __post_init__(self):
-        """Validaciones después de la inicialización"""
-        if not self.descripcion:
-            raise ValueError("La descripción no puede estar vacía")
+
+@dataclass
+class ResumenMensual:
+    """Entidad para resúmenes mensuales"""
+    mes: int
+    año: int
+    total_gastos: float = 0.0
+    total_pagado: float = 0.0
+    total_pendiente: float = 0.0
+    cuentas_pagadas: int = 0
+    cuentas_pendientes: int = 0
+    cuentas_vencidas: int = 0
+
+    def agregar_cuenta(self, cuenta):
+        """Agrega una cuenta al resumen"""
+        self.total_gastos += cuenta.monto
+        if cuenta.pagado:
+            self.total_pagado += cuenta.monto
+            self.cuentas_pagadas += 1
+        else:
+            self.total_pendiente += cuenta.monto
+            self.cuentas_pendientes += 1
+            if cuenta.esta_vencida():
+                self.cuentas_vencidas += 1
 
 
 @dataclass
@@ -62,51 +84,21 @@ class CuentaServicio:
     historial: Optional[List[HistorialCambio]] = None
 
     def __post_init__(self):
-        """Validaciones avanzadas después de la inicialización"""
-        # Validar monto
-        if self.monto <= 0:
-            raise ValueError("El monto debe ser mayor a 0")
+        """Validaciones usando el validador centralizado"""
+        # Usar el validador centralizado
+        errores = CuentaServicioValidator.validar_cuenta_completa(
+            tipo_servicio=self.tipo_servicio,
+            fecha_emision=self.fecha_emision,
+            fecha_vencimiento=self.fecha_vencimiento,
+            monto=self.monto,
+            descripcion=self.descripcion,
+            observaciones=self.observaciones,
+            fecha_proxima_lectura=self.fecha_proxima_lectura,
+            fecha_corte=self.fecha_corte
+        )
 
-        if self.monto > 10000000:  # 10 millones de pesos
-            raise ValueError("El monto no puede exceder $10,000,000")
-
-        # Validar fechas
-        if self.fecha_vencimiento <= self.fecha_emision:
-            raise ValueError("La fecha de vencimiento debe ser posterior a la fecha de emisión")
-
-        if self.fecha_emision > datetime.now() + timedelta(days=365):
-            raise ValueError("La fecha de emisión no puede ser más de 1 año en el futuro")
-
-        if self.fecha_emision < datetime.now() - timedelta(days=3650):
-            raise ValueError("La fecha de emisión no puede ser más antigua de 10 años")
-
-        # Validar fechas opcionales
-        if self.fecha_proxima_lectura and self.fecha_proxima_lectura < self.fecha_emision:
-            raise ValueError("La fecha de próxima lectura no puede ser anterior a la fecha de emisión")
-
-        if self.fecha_corte and self.fecha_corte < self.fecha_emision:
-            raise ValueError("La fecha de corte no puede ser anterior a la fecha de emisión")
-
-        if self.fecha_corte and self.fecha_corte > self.fecha_vencimiento + timedelta(days=30):
-            raise ValueError("La fecha de corte no puede ser más de 30 días después del vencimiento")
-
-        # Validar descripción
-        if not self.descripcion or not self.descripcion.strip():
-            raise ValueError("La descripción no puede estar vacía")
-
-        if len(self.descripcion.strip()) > 500:
-            raise ValueError("La descripción no puede exceder 500 caracteres")
-
-        # Validar que no contenga caracteres peligrosos
-        if re.search(r'[<>"\']', self.descripcion):
-            raise ValueError("La descripción no puede contener caracteres especiales como <, >, \", '")
-
-        # Validar observaciones
-        if len(self.observaciones) > 1000:
-            raise ValueError("Las observaciones no pueden exceder 1000 caracteres")
-
-        if re.search(r'[<>"\']', self.observaciones):
-            raise ValueError("Las observaciones no pueden contener caracteres especiales como <, >, \", '")
+        if errores:
+            raise ValueError("; ".join(errores))
 
         if self.historial is None:
             self.historial = []
@@ -147,6 +139,17 @@ class CuentaServicio:
             return False
         return datetime.now() >= self.fecha_corte
 
+    def get_estado(self) -> str:
+        """Devuelve el estado textual de la cuenta"""
+        if self.pagado:
+            return "Pagado"
+        elif self.esta_vencida():
+            return "Vencido"
+        elif self.esta_en_riesgo_corte():
+            return "En Riesgo de Corte"
+        else:
+            return "Pendiente"
+
     def agregar_cambio_historial(self, tipo_cambio: TipoCambio, descripcion: str,
                                datos_anteriores: Optional[dict] = None,
                                datos_nuevos: Optional[dict] = None):
@@ -162,35 +165,3 @@ class CuentaServicio:
         )
         if self.historial is not None:
             self.historial.append(cambio)
-
-
-@dataclass
-class ResumenMensual:
-    """Entidad para resumen mensual de gastos"""
-    mes: int
-    año: int
-    total_luz: float = 0.0
-    total_agua: float = 0.0
-    total_gas: float = 0.0
-    total_internet: float = 0.0
-    total_gastos_comunes: float = 0.0
-
-    @property
-    def total_general(self) -> float:
-        """Calcula el total general de todos los servicios"""
-        return (self.total_luz + self.total_agua + self.total_gas +
-                self.total_internet + self.total_gastos_comunes)
-
-    def agregar_cuenta(self, cuenta: CuentaServicio):
-        """Agrega una cuenta al resumen mensual"""
-        if cuenta.fecha_emision.month == self.mes and cuenta.fecha_emision.year == self.año:
-            if cuenta.tipo_servicio == TipoServicio.LUZ:
-                self.total_luz += cuenta.monto
-            elif cuenta.tipo_servicio == TipoServicio.AGUA:
-                self.total_agua += cuenta.monto
-            elif cuenta.tipo_servicio == TipoServicio.GAS:
-                self.total_gas += cuenta.monto
-            elif cuenta.tipo_servicio == TipoServicio.INTERNET:
-                self.total_internet += cuenta.monto
-            elif cuenta.tipo_servicio == TipoServicio.GASTOS_COMUNES:
-                self.total_gastos_comunes += cuenta.monto
