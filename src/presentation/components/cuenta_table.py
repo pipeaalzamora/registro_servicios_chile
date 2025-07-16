@@ -15,7 +15,7 @@ from ..themes import theme_manager
 class CuentaTable:
     """Componente de tabla para mostrar y gestionar cuentas"""
 
-    def __init__(self, parent, gestionar_cuenta, on_cuenta_selected: Callable = None):
+    def __init__(self, parent, gestionar_cuenta, on_cuenta_selected: Optional[Callable] = None):
         self.parent = parent
         self.gestionar_cuenta = gestionar_cuenta
         self.on_cuenta_selected = on_cuenta_selected
@@ -145,9 +145,9 @@ class CuentaTable:
         table_frame = ttk.Frame(self.main_frame)
         table_frame.grid(row=1, column=1, sticky="nsew")
 
-        # Crear Treeview con columnas responsive
+        # Crear Treeview con columnas responsive y selección múltiple
         columns = ('Servicio', 'Emisión', 'Vencimiento', 'Próxima Lectura', 'Fecha Corte', 'Monto', 'Estado', 'Descripción')
-        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15, selectmode='extended')
 
         # Configurar columnas con anchos responsive
         column_widths = {
@@ -192,7 +192,7 @@ class CuentaTable:
         self.context_menu.add_command(label="✅ Marcar como Pagada", command=self.on_mark_paid_requested)
         self.context_menu.add_command(label="📋 Ver Historial", command=self.on_ver_historial_requested)
         self.context_menu.add_separator()
-        self.context_menu.add_command(label="🗑️ Eliminar", command=self.on_delete_requested)
+        self.context_menu.add_command(label="🗑️ Eliminar Seleccionadas", command=self.on_delete_multiple_requested)
 
         self.tree.bind('<Button-3>', self.mostrar_menu_contextual)
 
@@ -337,6 +337,19 @@ class CuentaTable:
         cuenta_id = self.tree.item(item_id, 'tags')[0]
         return self.gestionar_cuenta.obtener_cuenta(cuenta_id)
 
+    def obtener_cuentas_seleccionadas(self) -> List[CuentaServicio]:
+        """Obtiene todas las cuentas seleccionadas en la tabla"""
+        selection = self.tree.selection()
+        cuentas_seleccionadas = []
+
+        for item_id in selection:
+            cuenta_id = self.tree.item(item_id, 'tags')[0]
+            cuenta = self.gestionar_cuenta.obtener_cuenta(cuenta_id)
+            if cuenta:
+                cuentas_seleccionadas.append(cuenta)
+
+        return cuentas_seleccionadas
+
     def on_double_click(self, event):
         """Maneja el doble clic en una fila"""
         if self.on_cuenta_selected:
@@ -344,8 +357,8 @@ class CuentaTable:
 
     def on_selection_change(self, event):
         """Maneja el cambio de selección"""
-        if self.on_cuenta_selected:
-            self.on_cuenta_selected()
+        # No hacer nada automáticamente al cambiar selección
+        pass
 
     def on_edit_requested(self):
         """Maneja la solicitud de edición desde el menú contextual"""
@@ -381,6 +394,41 @@ class CuentaTable:
                     messagebox.showinfo("Éxito", "Cuenta eliminada")
                 except Exception as e:
                     messagebox.showerror("Error", f"Error al eliminar: {str(e)}")
+
+    def on_delete_multiple_requested(self):
+        """Maneja la solicitud de eliminación múltiple"""
+        cuentas_seleccionadas = self.obtener_cuentas_seleccionadas()
+
+        if not cuentas_seleccionadas:
+            messagebox.showwarning("Advertencia", "No hay cuentas seleccionadas")
+            return
+
+        if len(cuentas_seleccionadas) == 1:
+            cuenta = cuentas_seleccionadas[0]
+            if messagebox.askyesno("Confirmar", f"¿Eliminar cuenta de {cuenta.tipo_servicio.value}?"):
+                try:
+                    self.gestionar_cuenta.eliminar_cuenta(cuenta.id)
+                    self.refresh()
+                    messagebox.showinfo("Éxito", "Cuenta eliminada")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al eliminar: {str(e)}")
+        else:
+            # Múltiples cuentas seleccionadas
+            servicios = [c.tipo_servicio.value for c in cuentas_seleccionadas]
+            total_monto = sum(c.monto for c in cuentas_seleccionadas)
+
+            mensaje = f"¿Eliminar {len(cuentas_seleccionadas)} cuentas seleccionadas?\n\n"
+            mensaje += f"Servicios: {', '.join(servicios)}\n"
+            mensaje += f"Total: {formatear_moneda_clp_simple(total_monto)}"
+
+            if messagebox.askyesno("Confirmar Eliminación Múltiple", mensaje):
+                try:
+                    for cuenta in cuentas_seleccionadas:
+                        self.gestionar_cuenta.eliminar_cuenta(cuenta.id)
+                    self.refresh()
+                    messagebox.showinfo("Éxito", f"{len(cuentas_seleccionadas)} cuentas eliminadas")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error al eliminar cuentas: {str(e)}")
 
     def ordenar_por_columna(self, columna):
         """Ordena la tabla por la columna especificada"""

@@ -11,7 +11,7 @@ from ...domain.entities import TipoServicio, CuentaServicio
 from ...domain.validators import CuentaServicioValidator, TextValidator
 from ...application.casos_uso import GestionarCuentaServicio
 from .calendar_widget import DateEntryWithCalendar
-from ..utils import error_handler, handle_validation_errors
+from ..utils import error_handler, handle_validation_errors, centrar_ventana
 
 
 class CuentaDialog:
@@ -29,6 +29,9 @@ class CuentaDialog:
         self.dialog.geometry("550x700")
         self.dialog.transient(parent)
         self.dialog.grab_set()
+
+        # Centrar ventana respecto a la principal
+        centrar_ventana(self.dialog, parent, 550, 700)
 
         self.setup_ui()
         if cuenta:

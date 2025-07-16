@@ -23,8 +23,11 @@ class ButtonPanel:
                  on_editar_cuenta: Optional[Callable] = None,
                  on_marcar_pagada: Optional[Callable] = None,
                  on_eliminar_cuenta: Optional[Callable] = None,
+                 on_eliminar_multiple: Optional[Callable] = None,
                  on_mostrar_graficos: Optional[Callable] = None,
-                 on_theme_change: Optional[Callable] = None):
+                 on_theme_change: Optional[Callable] = None,
+                 on_mostrar_ia: Optional[Callable] = None,
+                 on_mostrar_asistente: Optional[Callable] = None):
         self.parent = parent
         self.gestionar_cuenta = gestionar_cuenta
         self.generar_reportes = generar_reportes
@@ -35,8 +38,11 @@ class ButtonPanel:
         self.on_editar_cuenta = on_editar_cuenta
         self.on_marcar_pagada = on_marcar_pagada
         self.on_eliminar_cuenta = on_eliminar_cuenta
+        self.on_eliminar_multiple = on_eliminar_multiple
         self.on_mostrar_graficos = on_mostrar_graficos
         self.on_theme_change = on_theme_change
+        self.on_mostrar_ia = on_mostrar_ia
+        self.on_mostrar_asistente = on_mostrar_asistente
 
         self.setup_ui()
         self.bind_shortcuts()
@@ -80,8 +86,10 @@ class ButtonPanel:
             ("Nuevo Registro", self.on_nueva_cuenta, "➕"),
             ("Editar Cuenta", self.on_editar_cuenta, "✏️"),
             ("Marcar como Pagada", self.on_marcar_pagada, "✅"),
-            ("Eliminar Cuenta", self.on_eliminar_cuenta, "🗑️"),
-            ("Gráficos", self.on_mostrar_graficos, "📊")
+            ("Eliminar Seleccionadas", self.on_eliminar_multiple, "🗑️"),
+            ("Gráficos", self.on_mostrar_graficos, "📊"),
+            ("IA", self.on_mostrar_ia, "🤖"),  # Nuevo botón de IA
+            ("Asistente", self.on_mostrar_asistente, "💬"),  # Nuevo botón de Asistente
         ]
 
         for idx, (text, command, icon) in enumerate(buttons_data):
@@ -248,6 +256,16 @@ class ButtonPanel:
         resumenes = self.generar_reportes.obtener_resumenes_anuales(año)
         filepath = self.pdf_service.generar_reporte_anual(resumenes, año)
         messagebox.showinfo("Éxito", f"Reporte anual generado: {filepath}")
+
+    def on_mostrar_ia(self):
+        """Muestra el panel de IA"""
+        if self.on_mostrar_ia and callable(self.on_mostrar_ia):
+            self.on_mostrar_ia()
+
+    def on_mostrar_asistente(self):
+        """Muestra el asistente virtual"""
+        if self.on_mostrar_asistente and callable(self.on_mostrar_asistente):
+            self.on_mostrar_asistente()
 
     def get_widget(self):
         """Retorna el widget principal del componente"""
