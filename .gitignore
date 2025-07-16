@@ -87,3 +87,39 @@ htmlcov/
 # Archivos de configuración local
 local_config.json
 user_settings.json
+
+# Modelos de IA y Machine Learning
+models/
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.model
+*.weights
+*.bin
+*.onnx
+*.tflite
+*.pb
+
+# Datos de entrenamiento y datasets
+datasets/
+training_data/
+*.csv
+*.json
+*.parquet
+*.feather
+
+# Archivos de OCR y procesamiento de imágenes
+temp_images/
+ocr_temp/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.gif
+
+# Archivos de configuración de IA
+ai_config.json
+model_config.json
+training_config.json
