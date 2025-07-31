@@ -123,3 +123,14 @@ ocr_temp/
 ai_config.json
 model_config.json
 training_config.json
+
+# Bot de WhatsApp
+whatsapp_bot/node_modules/
+whatsapp_bot/auth_info_baileys/
+whatsapp_bot/.env
+whatsapp_bot/bot.log
+whatsapp_bot/store.json
+whatsapp_bot/session.json
+whatsapp_bot/*.session
+whatsapp_bot/qr.png
+whatsapp_bot/qr.txt

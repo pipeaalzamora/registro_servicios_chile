@@ -1,2 +1,7 @@
+# Dependencias básicas para la aplicación simplificada
 reportlab==4.0.4
 matplotlib>=3.5.0
+
+# Base de datos MongoDB
+pymongo>=4.0.0
+dnspython>=2.0.0

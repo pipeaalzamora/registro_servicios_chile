@@ -1,1 +1,0 @@
-# Paquete de aplicación - Casos de uso

@@ -1,1 +1,0 @@
-# Paquete de dominio - Entidades y reglas de negocio
