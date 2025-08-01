@@ -11,8 +11,8 @@ import sys
 from pathlib import Path
 
 from models import CuentaServicio, TipoServicio
-from database_mongodb import DatabaseManager
-from reports import ReportGenerator
+from database_manager import DatabaseManager
+from reports import ReportManager
 from ui.main_window import MainWindow
 from config import DATABASE_CONFIG
 
@@ -34,8 +34,8 @@ def main():
         conn_info = db_manager.get_connection_info()
         print(f"Base de datos: {conn_info['type']} - {conn_info['status']}")
 
-        # Inicializar generador de reportes
-        report_generator = ReportGenerator()
+        # Inicializar gestor de reportes
+        report_generator = ReportManager()
 
         # Crear y ejecutar la interfaz de usuario
         app = MainWindow(db_manager, report_generator)
