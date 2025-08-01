@@ -1,29 +1,30 @@
 """
-Ventana principal simplificada de la aplicación
+Ventana principal refactorizada de la aplicación
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
-from datetime import datetime, timedelta
+from tkinter import ttk, messagebox, simpledialog, filedialog
+from datetime import datetime
 from typing import List, Optional
-import threading
 
 from models import CuentaServicio, TipoServicio, validar_cuenta
-from database_mongodb import DatabaseManager
-from reports import ReportGenerator
-from .components import CuentaDialog, StatsPanel
+from database_manager import DatabaseManager
+from reports import ReportManager
+from .components import StatsPanel, CuentaDialog
 from .enhanced_components import EnhancedStatsPanel, EnhancedCuentaTable, SearchBox, ProgressDialog
 from .notifications import NotificationManager, NotificationIndicator
-from .graphics_window import GraphicsWindow
 from .themes import theme_manager
-from .utils import format_currency, format_date, get_estado_color
+from .utils import format_currency, format_date
+from .crud_operations import CrudOperations
+
+from .event_handlers import EventHandlers
 from config import APP_CONFIG, UI_CONFIG, NOTIFICATIONS_CONFIG
 
 
 class MainWindow:
     """Ventana principal de la aplicación"""
 
-    def __init__(self, db_manager: DatabaseManager, report_generator: ReportGenerator):
+    def __init__(self, db_manager: DatabaseManager, report_generator: ReportManager):
         self.db_manager = db_manager
         self.report_generator = report_generator
 
@@ -38,6 +39,11 @@ class MainWindow:
         self.selected_cuenta = None
         self.graphics_window = None
 
+        # Inicializar gestores
+        self.crud_operations = CrudOperations(self)
+
+        self.event_handlers = EventHandlers(self)
+
         # Configurar tema
         self._setup_theme()
 
@@ -48,7 +54,7 @@ class MainWindow:
         self._setup_notifications()
 
         # Configurar atajos de teclado
-        self._setup_keyboard_shortcuts()
+        self.event_handlers.setup_keyboard_shortcuts()
 
         # Cargar datos
         self._load_data()
@@ -95,11 +101,7 @@ class MainWindow:
         if not UI_CONFIG.get('enable_keyboard_shortcuts', True):
             return
 
-        # Atajos globales
-        self.root.bind('<Control-n>', lambda e: self._nueva_cuenta())
-        self.root.bind('<Control-e>', lambda e: self._editar_cuenta())
-        self.root.bind('<Control-d>', lambda e: self._eliminar_cuenta())
-        self.root.bind('<Control-p>', lambda e: self._marcar_pagado())
+        # Los atajos de teclado ahora se manejan en event_handlers
         self.root.bind('<Control-f>', lambda e: self.search_box.search_entry.focus())
         self.root.bind('<Control-r>', lambda e: self._refresh_data())
         self.root.bind('<F5>', lambda e: self._refresh_data())
@@ -163,13 +165,13 @@ class MainWindow:
         action_frame.pack(side=tk.LEFT, padx=(0, 10))
 
         ttk.Button(action_frame, text="➕ Nueva", style='Action.TButton',
-                  command=self._nueva_cuenta).grid(row=0, column=0, padx=2, pady=2)
+                  command=self.crud_operations.nueva_cuenta).grid(row=0, column=0, padx=2, pady=2)
         ttk.Button(action_frame, text="✏️ Editar",
-                  command=self._editar_cuenta).grid(row=0, column=1, padx=2, pady=2)
+                  command=self.crud_operations.editar_cuenta).grid(row=0, column=1, padx=2, pady=2)
         ttk.Button(action_frame, text="🗑️ Eliminar", style='Error.TButton',
-                  command=self._eliminar_cuenta).grid(row=0, column=2, padx=2, pady=2)
+                  command=self.crud_operations.eliminar_cuenta).grid(row=0, column=2, padx=2, pady=2)
         ttk.Button(action_frame, text="✅ Pagado", style='Success.TButton',
-                  command=self._marcar_pagado).grid(row=0, column=3, padx=2, pady=2)
+                  command=self.crud_operations.marcar_pagado).grid(row=0, column=3, padx=2, pady=2)
 
         # Menú de reportes mejorado
         reports_frame = ttk.LabelFrame(right_frame, text="Reportes", padding=5)

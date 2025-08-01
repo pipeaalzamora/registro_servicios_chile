@@ -12,7 +12,7 @@ import numpy as np
 from typing import List, Dict
 
 from models import CuentaServicio, TipoServicio
-from database_mongodb import DatabaseManager
+from database_manager import DatabaseManager
 from .themes import theme_manager
 
 

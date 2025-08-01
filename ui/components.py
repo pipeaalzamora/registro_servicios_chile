@@ -235,12 +235,22 @@ class CuentaDialog:
                 self.dia_corte_var.set(str(self.cuenta.fecha_corte.day))
                 self.mes_corte_var.set(self.meses_nombres[self.cuenta.fecha_corte.month - 1])
                 self.año_corte_var.set(str(self.cuenta.fecha_corte.year))
+            else:
+                # Limpiar campos si no hay fecha
+                self.dia_corte_var.set("")
+                self.mes_corte_var.set("")
+                self.año_corte_var.set("")
 
             # Fecha de lectura próxima
             if hasattr(self.cuenta, 'fecha_lectura_proxima') and self.cuenta.fecha_lectura_proxima:
                 self.dia_lectura_var.set(str(self.cuenta.fecha_lectura_proxima.day))
                 self.mes_lectura_var.set(self.meses_nombres[self.cuenta.fecha_lectura_proxima.month - 1])
                 self.año_lectura_var.set(str(self.cuenta.fecha_lectura_proxima.year))
+            else:
+                # Limpiar campos si no hay fecha
+                self.dia_lectura_var.set("")
+                self.mes_lectura_var.set("")
+                self.año_lectura_var.set("")
 
             self.observaciones_text.insert('1.0', self.cuenta.observaciones)
 
@@ -284,24 +294,32 @@ class CuentaDialog:
             )
 
             fecha_corte = None
-            if (self.dia_corte_var.get() and self.mes_corte_var.get() and
-                self.año_corte_var.get()):
-                mes_corte_num = self.meses_nombres.index(self.mes_corte_var.get()) + 1
-                fecha_corte = datetime(
-                    int(self.año_corte_var.get()),
-                    mes_corte_num,
-                    int(self.dia_corte_var.get())
-                )
+            if (self.dia_corte_var.get().strip() and self.mes_corte_var.get().strip() and
+                self.año_corte_var.get().strip()):
+                try:
+                    mes_corte_num = self.meses_nombres.index(self.mes_corte_var.get()) + 1
+                    fecha_corte = datetime(
+                        int(self.año_corte_var.get()),
+                        mes_corte_num,
+                        int(self.dia_corte_var.get())
+                    )
+                except (ValueError, IndexError):
+                    # Si hay error en la fecha, dejarla como None
+                    fecha_corte = None
 
             fecha_lectura_proxima = None
-            if (self.dia_lectura_var.get() and self.mes_lectura_var.get() and
-                self.año_lectura_var.get()):
-                mes_lectura_num = self.meses_nombres.index(self.mes_lectura_var.get()) + 1
-                fecha_lectura_proxima = datetime(
-                    int(self.año_lectura_var.get()),
-                    mes_lectura_num,
-                    int(self.dia_lectura_var.get())
-                )
+            if (self.dia_lectura_var.get().strip() and self.mes_lectura_var.get().strip() and
+                self.año_lectura_var.get().strip()):
+                try:
+                    mes_lectura_num = self.meses_nombres.index(self.mes_lectura_var.get()) + 1
+                    fecha_lectura_proxima = datetime(
+                        int(self.año_lectura_var.get()),
+                        mes_lectura_num,
+                        int(self.dia_lectura_var.get())
+                    )
+                except (ValueError, IndexError):
+                    # Si hay error en la fecha, dejarla como None
+                    fecha_lectura_proxima = None
 
             # Crear cuenta
             cuenta = CuentaServicio(
